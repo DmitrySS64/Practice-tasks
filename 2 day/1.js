@@ -1,16 +1,23 @@
-//вывести числа фибаначи до 200
+//вывести все числа делящиеся только на себя и на единицу до 100
 
-function fibonacci(limit){
-    const fibNum = [0, 1];
-    var nextNum = fibNum[0] + fibNum[1];
-    
-    while (nextNum <= limit) {
-        fibNum.push(nextNum);
-        var length = fibNum.length;
-        nextNum = fibNum[length - 1] + fibNum[length - 2];
+function findPrimeNumbers(limit) {
+    let primeNumbers = [];
+
+    for (let number = 2; number <= limit; number++) {
+        let isPrime = true;
+
+        for (let divisor = 2; divisor < number; divisor++) {
+            if (number % divisor === 0) {
+                isPrime = false;
+                break;
+            }
+        }
+        if (isPrime) {
+            primeNumbers.push(number);
+        }
     }
 
-    return fibNum;
+    return primeNumbers;
 }
 
-console.log(fibonacci(200));
+console.log(findPrimeNumbers(100));
