@@ -1,11 +1,34 @@
 import axiosInstance from './axiosInstance';
 
 export const register = async (login, password) => {
-  return await axiosInstance.post('/auth/register', { login, password });
+  try {
+    if (!login || !password) {
+      throw new Error('Логин и пароль обязательны для регистрации.');
+    }
+
+    const response = await axiosInstance.post('/auth/register', { login, password });
+
+    return response;
+  } catch (error) {
+    console.error('Ошибка регистрации:', error.message);
+    throw error;
+  }
 };
 
 export const login = async (login, password) => {
-  return await axiosInstance.post('/auth/login', { login, password });
+  try {
+  if (!login || !password) {
+    throw new Error('Логин и пароль обязательны для входа.');
+  }
+
+  const response = await axiosInstance.post('/auth/login', { login, password });
+
+  return response;
+
+} catch (error) {
+  console.error('Ошибка входа:', error.message);
+  throw error;
+}
 };
 
 export const fetchFolders = async (parentId) => {
@@ -18,14 +41,16 @@ export const createFolder = async (name, parentId) => {
 
 export const uploadFile = async (file, parentId) => {
   const formData = new FormData();
-  formData.append('file', file);
   formData.append('folderId', parentId);
+  formData.append('file', file);
 
-  return await axiosInstance.post('/drive/files', formData, {
+  const response = await axiosInstance.post('/drive/files', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
   });
+
+  return response.data;
 };
 
 export const deleteFolder = async (folderId) => {

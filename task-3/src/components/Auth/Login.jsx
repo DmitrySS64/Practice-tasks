@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { TextField, Button, Container, Box } from '@mui/material';
+import { TextField, Button, Container, Box, Typography } from '@mui/material';
 import { login } from "../../services/api";
 
 const Login = () => {
     const [loginValue, setLoginValue] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [error, setError] = useState('');
     const navigate = useNavigate();
 
     const handleLogin = async () => {
@@ -18,6 +19,7 @@ const Login = () => {
         }
         catch (error) {
             console.error('Login failed', error);
+            setError(error.message)
         }
     }
     return(
@@ -44,6 +46,11 @@ const Login = () => {
                 <Button variant="contained" color="primary" onClick={handleLogin}>
                     Login
                 </Button>
+                {error && (
+                    <Typography color="error" variant="body2" margin="normal">
+                        {error}
+                    </Typography>
+                )}
             </Box>
         </Container>
     )

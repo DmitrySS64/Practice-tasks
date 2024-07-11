@@ -10,14 +10,16 @@ import Modal from './modal/Modal';
 import { useModal } from './modal/ModalContext';
 import CreateFolder from './modal/CreateFolder';
 import EditFolder from './modal/EditFolder';
+import FileUploadModal from './modal/FileUploadModal';
 
 const FolderView = () => {
   const [currentFolder, setCurrentFolder] = useState('root');
   const [folderData, setFolderData] = useState(null);
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [highlightedFolderId, setHighlightedFolderId] = useState(null);
-
+  const [folderHistory, setFolderHistory] = useState([]);  
   const {openModal, closeModal} = useModal();
+  const [openUploadModal, setOpenUploadModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -68,6 +70,28 @@ const FolderView = () => {
     setSelectedFolder(folder);
     setHighlightedFolderId(folder.id);
   };
+  const handleDoubleClick = (child) => {
+    if (child.type === 'folder') {
+      setFolderHistory([...folderHistory, currentFolder]);
+      setCurrentFolder(child.id);
+    }
+  }
+  const handleGoBack = () => {
+    if (folderHistory) {
+      const previousFolder = folderHistory[folderHistory.length - 1];
+      setFolderHistory(folderHistory.slice(0, -1));
+      setCurrentFolder(previousFolder);
+    }
+  };
+
+  const handleFileUploaded = async () => {
+    try {
+      const response = await fetchFolders(currentFolder);
+      setFolderData(response.data.data);
+    } catch (error) {
+      console.error('Error fetching folder data after upload:', error);
+    }
+  };
 
   return (
     <Container>
@@ -87,12 +111,13 @@ const FolderView = () => {
               })}>
                 Add Folder
               </Button>
-              <Button>
+              <Button onClick={()=>setOpenUploadModal(true)}>
                 Add File
               </Button>
               <Button onClick={()=> openModalView()}>
                 open modal window
               </Button>
+              {folderHistory.length !== 0 && <Button onClick={handleGoBack}>Назад</Button>}
             </Grid>
             <Table size='small'>
               <TableHead>
@@ -107,6 +132,7 @@ const FolderView = () => {
                   <TableRow 
                     key={child.id} 
                     onClick={()=>handleRowClick(child)}
+                    onDoubleClick={()=>handleDoubleClick(child)}
                     style={{
                       backgroundColor: highlightedFolderId === child.id ? 'lightblue' : 'white',
                     }}
@@ -114,7 +140,7 @@ const FolderView = () => {
                     <TableCell>{child.type === 'folder' ? child.name : child.file.name}</TableCell>
                     <TableCell>{child.type}</TableCell>
                     <TableCell>
-                      <Button onClick={() => handleEditFolder(child)}>Edit</Button>
+                      { child.type === 'folder' && <Button onClick={() => handleEditFolder(child)}>Edit</Button>}
                       <Button onClick={() => handleDeleteItem(child)}>Delete</Button>
                     </TableCell>
                   </TableRow>
@@ -128,6 +154,13 @@ const FolderView = () => {
         )}
       </Box>
       <Modal/>
+      {openUploadModal && (
+        <FileUploadModal
+          parentId={currentFolder}
+          onClose={()=>setOpenUploadModal(false)}
+          onFileUploaded={handleFolderUpdated}
+        />
+      )}
     </Container>
   );
 };
