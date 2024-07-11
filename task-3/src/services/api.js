@@ -65,6 +65,8 @@ export const updateFolder = async (folderId, name) => {
   return await axiosInstance.patch(`/drive/folder/${folderId}`, { name });
 };
 
-export const moveFolder = async (folderId, parentId) => {
-  return await axiosInstance.patch(`/drive/folder/${folderId}`, { parentId });
+export const moveFolder = async (folder, parentId) => {
+  const response = await createFolder(folder.name, parentId)
+  await deleteFolder(folder.id)
+  return response;
 };

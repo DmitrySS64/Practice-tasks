@@ -5,21 +5,20 @@ import { Container, Box,
   TableBody,
   Paper
  } from '@mui/material';
-import { fetchFolders, deleteFolder, deleteFile } from '../../services/api';
+import { fetchFolders, deleteFolder, deleteFile, updateFolder, uploadFile, moveFolder } from '../../services/api';
 import Modal from './modal/Modal';
 import { useModal } from './modal/ModalContext';
 import CreateFolder from './modal/CreateFolder';
 import EditFolder from './modal/EditFolder';
-import FileUploadModal from './modal/FileUploadModal';
+import FileUpload from './modal/FileUpload';
 
 const FolderView = () => {
   const [currentFolder, setCurrentFolder] = useState('root');
   const [folderData, setFolderData] = useState(null);
-  const [selectedFolder, setSelectedFolder] = useState(null);
-  const [highlightedFolderId, setHighlightedFolderId] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [cutItem, setCutItem] = useState(null);
   const [folderHistory, setFolderHistory] = useState([]);  
-  const {openModal, closeModal} = useModal();
-  const [openUploadModal, setOpenUploadModal] = useState(false);
+  const {openModal} = useModal();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -36,20 +35,14 @@ const FolderView = () => {
   const handleFolderUpdated = async () => {
     const response = await fetchFolders(currentFolder);
     setFolderData(response.data.data);
-    setSelectedFolder(null);
-    setHighlightedFolderId(null);
+    setSelectedItem(null);
   };
-  const openModalView = () => {
-    openModal({title:'123', text:'1234'})
-  }
   const handleEditFolder = (folder) => {
-    setSelectedFolder(folder);
+    setSelectedItem(folder);
     openModal({
       title: 'Edit Folder',
       text: 'Edit the name of the folder',
-      children: <EditFolder folder={folder} onFolderUpdated={handleFolderUpdated} />,
-      submitText: 'Update',
-      onSubmit: handleFolderUpdated,
+      children: <EditFolder folder={folder} onFolderUpdated={handleFolderUpdated} />
     });
   };
   const handleDeleteItem = async (item) => {
@@ -66,9 +59,8 @@ const FolderView = () => {
     }
   };
 
-  const handleRowClick = (folder) => {
-    setSelectedFolder(folder);
-    setHighlightedFolderId(folder.id);
+  const handleItemClick = (folder) => {
+    setSelectedItem(folder);
   };
   const handleDoubleClick = (child) => {
     if (child.type === 'folder') {
@@ -84,12 +76,24 @@ const FolderView = () => {
     }
   };
 
-  const handleFileUploaded = async () => {
-    try {
-      const response = await fetchFolders(currentFolder);
-      setFolderData(response.data.data);
-    } catch (error) {
-      console.error('Error fetching folder data after upload:', error);
+  const handleCutItem = () => {
+    setCutItem(selectedItem);
+    setSelectedItem(null);
+  };
+  const handlePasteItem = async () => {
+    if (cutItem) {
+      try {
+        if (cutItem.type === 'folder') {
+          await moveFolder(cutItem, currentFolder);
+        }// else {
+          //await uploadFile(cutItem.file, currentFolder);
+        //}
+        setCutItem(null);
+        const response = await fetchFolders(currentFolder);
+        setFolderData(response.data.data);
+      } catch (error) {
+        console.error('Error moving item:', error);
+      }
     }
   };
 
@@ -111,13 +115,25 @@ const FolderView = () => {
               })}>
                 Add Folder
               </Button>
-              <Button onClick={()=>setOpenUploadModal(true)}>
+              <Button onClick={()=>openModal({
+                title: 'Upload file',
+                text: 'Select a file',
+                children: <FileUpload currentFolderId={currentFolder} onFileUploaded={handleFolderUpdated} />,
+                //submitText: 'Create'
+              })}>
                 Add File
               </Button>
-              <Button onClick={()=> openModalView()}>
-                open modal window
-              </Button>
               {folderHistory.length !== 0 && <Button onClick={handleGoBack}>Назад</Button>}
+              {selectedItem && selectedItem.type === 'folder' && 
+                <Button onClick={handleCutItem}>
+                  Copy
+                </Button>
+              }
+              {cutItem && (
+                <Button onClick={handlePasteItem}>
+                  Paste {cutItem.type === 'folder' ? cutItem.name : cutItem.file.name}
+                </Button>
+              )}
             </Grid>
             <Table size='small'>
               <TableHead>
@@ -131,10 +147,10 @@ const FolderView = () => {
                 {folderData.children.map((child) => (
                   <TableRow 
                     key={child.id} 
-                    onClick={()=>handleRowClick(child)}
+                    onClick={()=>handleItemClick(child)}
                     onDoubleClick={()=>handleDoubleClick(child)}
                     style={{
-                      backgroundColor: highlightedFolderId === child.id ? 'lightblue' : 'white',
+                      backgroundColor: selectedItem && selectedItem.id === child.id ? 'lightblue' : 'white',
                     }}
                   >
                     <TableCell>{child.type === 'folder' ? child.name : child.file.name}</TableCell>
@@ -154,13 +170,6 @@ const FolderView = () => {
         )}
       </Box>
       <Modal/>
-      {openUploadModal && (
-        <FileUploadModal
-          parentId={currentFolder}
-          onClose={()=>setOpenUploadModal(false)}
-          onFileUploaded={handleFolderUpdated}
-        />
-      )}
     </Container>
   );
 };
